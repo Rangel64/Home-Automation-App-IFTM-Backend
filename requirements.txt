@@ -1,5 +1,5 @@
 requests
-python-firebase==4.0.1
+git+https://github.com/ozgur/python-firebase
 absl-py==1.4.0
 astunparse==1.6.3
 cachetools==5.3.0
