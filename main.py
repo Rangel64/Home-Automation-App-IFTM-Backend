@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 import json
 from firebase import firebase
 from threading import Thread
+from models.Relay import Relay
 from models.Groups import Group
 
 fb = firebase.FirebaseApplication('https://pi8iftm-default-rtdb.firebaseio.com/', None)
@@ -22,13 +23,28 @@ def reset_id_groups():
 @app.route('/get_relays', methods = ['GET'])
 def get_relays():
     global response,fb
-    relays = []
-    for i in range(1,9,1):
-        relay = fb.get("/relays",str(i))
-        if(relay["id_group"]=="-1"):
-            relays.append(relay)
+    data = fb.get("/","relays")
+    print(data)
+    try:
+        if(data!=None):
+            data.remove(None)
+            relays = []
+            for value in data:
+                id = value['id']
+                id_group = value['id_group']
+                isManual = value['isManual'] == 'true'
+                relays.append(Relay(id=id,id_group=id_group, isManual=isManual))
+        relays_response = []
+        print(relays)
+        for relay in relays:
+            relays_response.append(relay.toJson())
+            
+        return{"response":relays_response}
         
-    return {'response':relays}
+    except Exception as e:
+        print(f"Erro ao coletar os dados do Firebase: {e}")
+        return {'response':[]}
+        
 
 @app.route('/get_metrics', methods = ['GET'])
 def get_metrics():
@@ -59,7 +75,7 @@ def get_groups():
                 groups.append(Group(id=id,name=name, controll_pot=controll_pot, controll_time=controll_time, pot_max=pot_max, pot_min=pot_min, time_off=time_off, time_on=time_on, relays=relays))
             
         groups_response = []
-        # Exibir os grupos
+       
         for group in groups:
             groups_response.append(group.toJson())
             
@@ -94,6 +110,6 @@ def set_group():
         return {'response':"fail"}
     
 if(__name__ == "__main__"):
-    app.run(host="0.0.0.0", port=5000,debug=True)
+    app.run(host="localhost", port=5000,debug=True)
 
     
