@@ -6,4 +6,8 @@ class Relay:
         self.isManual = isManual
 
     def toJson(self):
-          return json.dumps(self.__dict__)
+          return {
+              "id": self.id,
+              "id_group": self.id_group,
+              "isManual": self.isManual
+          }

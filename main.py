@@ -32,19 +32,62 @@ def get_relays():
             for value in data:
                 id = value['id']
                 id_group = value['id_group']
-                isManual = value['isManual'] == 'true'
+                isManual = value['isManual']
                 relays.append(Relay(id=id,id_group=id_group, isManual=isManual))
         relays_response = []
         print(relays)
         for relay in relays:
-            relays_response.append(relay.toJson())
+            if(relay.id_group == "-1"):
+                relays_response.append(relay.toJson())
             
         return{"response":relays_response}
         
     except Exception as e:
         print(f"Erro ao coletar os dados do Firebase: {e}")
         return {'response':[]}
+    
+@app.route('/get_relays_control', methods = ['GET'])
+def get_relays_control():
+    global response,fb
+    data = fb.get("/","relays")
+    print(data)
+    try:
+        if(data!=None):
+            data.remove(None)
+            relays = []
+            for value in data:
+                id = value['id']
+                id_group = value['id_group']
+                isManual = value['isManual']
+                relays.append(Relay(id=id,id_group=id_group, isManual=isManual))
+        relays_response = []
+        print(relays)
+        for relay in relays:
+            relays_response.append(relay.toJson())
+        print(relays_response)
+        return{"response":relays_response}
         
+    except Exception as e:
+        print(f"Erro ao coletar os dados do Firebase: {e}")
+        return {'response':[]}
+        
+
+@app.route('/set_activate_relay', methods = ['POST'])
+def set_activate_relay():
+    global response,fb
+    request_data = json.loads(request.data.decode('utf-8'))
+    print(request_data)
+        
+    try:
+        fb.put("/relays",request_data["id"],data=request_data)
+
+        fb.put("/relay",request_data["id"],request_data["isManual"])
+            
+        return {'response':"Done"}
+    
+    except Exception as e:
+        print(f"Erro ao adicionar dados ao Firebase: {e}")
+        return {'response':"fail"}
 
 @app.route('/get_metrics', methods = ['GET'])
 def get_metrics():
@@ -64,8 +107,8 @@ def get_groups():
             for key, value in data.items():
                 id = key
                 name = value['name']
-                controll_pot = value['controll_pot'] == 'true'
-                controll_time = value['controll_time'] == 'true'
+                controll_pot = value['controll_pot']
+                controll_time = value['controll_time']
                 pot_max = float(value['pot_max'])
                 pot_min = float(value['pot_min'])
                 time_off = value['time_off']
@@ -79,6 +122,7 @@ def get_groups():
         for group in groups:
             groups_response.append(group.toJson())
             
+        
         return{"response":groups_response}
     except Exception as e:
         print(f"Erro ao coletar os dados do Firebase: {e}")
@@ -108,6 +152,8 @@ def set_group():
     except Exception as e:
         print(f"Erro ao adicionar dados ao Firebase: {e}")
         return {'response':"fail"}
+    
+
     
 if(__name__ == "__main__"):
     app.run(host="localhost", port=5000,debug=True)
