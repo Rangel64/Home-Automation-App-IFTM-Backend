@@ -83,11 +83,11 @@ def set_activate_relay():
 
         fb.put("/relay",request_data["id"],request_data["isManual"])
             
-        return {'response':"Done"}
+        return {'response':[]}
     
     except Exception as e:
         print(f"Erro ao adicionar dados ao Firebase: {e}")
-        return {'response':"fail"}
+        return {'response':[]}
 
 @app.route('/get_metrics', methods = ['GET'])
 def get_metrics():
