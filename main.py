@@ -11,11 +11,13 @@ app = Flask(__name__)
 
 @app.route('/', methods = ['GET'])
 def index():
+    print("4")
     global response
     return "<h1>PI8-Backend</h1>"  
 
 @app.route('/reset_id_groups', methods = ['GET'])
 def reset_id_groups():
+    print("3")
     for i in range(1,9,1):
         fb.put("/relays/"+str(i),"id_group","-1")
     return {'response':""}
@@ -25,6 +27,7 @@ def get_relays():
     global response,fb
     data = fb.get("/","relays")
     print(data)
+    print("2")
     try:
         if(data!=None):
             data.remove(None)
@@ -51,6 +54,7 @@ def get_relays_control():
     global response,fb
     data = fb.get("/","relays")
     print(data)
+    print("1")
     try:
         if(data!=None):
             data.remove(None)
@@ -78,22 +82,23 @@ def set_activate_relay():
     request_data = json.loads(request.data.decode('utf-8'))
     print(request_data)
     print("Entrou!")
-        
+    print("10")
     try:
         response = fb.put("/relays",request_data["id"],data=request_data)
         print(response)
         response = fb.put("/relay",request_data["id"],request_data["isManual"])
         print(response)
         print("Saiu!")
-        return {'response':[]}
+        return {'response':["Done"]}
     
     except Exception as e:
         print(f"Erro ao adicionar dados ao Firebase: {e}")
-        return {'response':[]}
+        return {'response':["fail"]}
 
 @app.route('/get_metrics', methods = ['GET'])
 def get_metrics():
     global response,fb
+    print("11")
     metrics = fb.get("/","pzem")
     metrics = json.loads(metrics)     
     return {'response':metrics}
@@ -103,6 +108,7 @@ def get_groups():
     global response,fb
     data = fb.get("/","groups")
     print(data)
+    print("12")
     try:
         if(data!=None):
             groups = []
@@ -138,7 +144,7 @@ def set_group():
     request_data = json.loads(request.data.decode('utf-8'))
     relays = request_data["relays"].replace("[","").replace("]","")
     request_data["relays"] = relays
-    
+    print("16")
     try:
         a = fb.post("/groups",data=request_data)
 
