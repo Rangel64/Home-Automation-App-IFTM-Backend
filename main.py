@@ -47,8 +47,8 @@ def get_relays():
         print(f"Erro ao coletar os dados do Firebase: {e}")
         return {'response':[]}
 
-@app.route('/get_relays_group', methods = ['GET'])
-def get_relays():
+@app.route('/get_relays_group', methods = ['POST'])
+def get_relays_group():
     global response,fb
     request_data = json.loads(request.data.decode('utf-8'))
     data = fb.get("/","relays")
@@ -65,7 +65,7 @@ def get_relays():
         relays_response = []
         
         for relay in relays:
-            if(relay.id_group == request_data["id_group"]):
+            if(relay.id_group == request_data["id"]):
                 relays_response.append(relay.toJson())
             
         return{"response":relays_response}
