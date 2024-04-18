@@ -79,10 +79,11 @@ def set_activate_relay():
     print(request_data)
         
     try:
-        fb.put("/relays",request_data["id"],data=request_data)
-
-        fb.put("/relay",request_data["id"],request_data["isManual"])
-            
+        response = fb.put("/relays",request_data["id"],data=request_data)
+        print(response)
+        response = fb.put("/relay",request_data["id"],request_data["isManual"])
+        print(response)
+        
         return {'response':[]}
     
     except Exception as e:
