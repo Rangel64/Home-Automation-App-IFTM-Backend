@@ -46,7 +46,34 @@ def get_relays():
     except Exception as e:
         print(f"Erro ao coletar os dados do Firebase: {e}")
         return {'response':[]}
-    
+
+@app.route('/get_relays_group', methods = ['GET'])
+def get_relays():
+    global response,fb
+    request_data = json.loads(request.data.decode('utf-8'))
+    data = fb.get("/","relays")
+   
+    try:
+        if(data!=None):
+            data.remove(None)
+            relays = []
+            for value in data:
+                id = value['id']
+                id_group = value['id_group']
+                isManual = value['isManual']
+                relays.append(Relay(id=id,id_group=id_group, isManual=isManual))
+        relays_response = []
+        
+        for relay in relays:
+            if(relay.id_group == request_data["id_group"]):
+                relays_response.append(relay.toJson())
+            
+        return{"response":relays_response}
+        
+    except Exception as e:
+        print(f"Erro ao coletar os dados do Firebase: {e}")
+        return {'response':[]}
+
 @app.route('/get_relays_control', methods = ['GET'])
 def get_relays_control():
     global response,fb
