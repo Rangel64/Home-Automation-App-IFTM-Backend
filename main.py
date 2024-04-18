@@ -181,6 +181,27 @@ def set_group():
         return {'response':"fail"}
     
 
+@app.route('/delete_group', methods = ['POST'])
+def delete_groups():
+    global response,fb
+    request_data = json.loads(request.data.decode('utf-8'))
+    # print(request_data)
+    try:
+        if(request_data!=None):
+            relays = request_data["relays"].replace("[","").replace("]","")
+            relays = relays.replace('"', '').split(',')
+            relays = [int(x) for x in relays]
+
+            for relay_ in relays:
+                fb.put("/relays/"+str(relay_),"/id_group","-1")
+
+            fb.delete("/groups",request_data["id"])   
+
+            return{"response":["Done"]}
+        return{"response":[""]}
+    except Exception as e:
+        print(f"Erro ao coletar os dados do Firebase: {e}")
+        return {'response':["Fail"]}
     
 if(__name__ == "__main__"):
     app.run(host="localhost", port=5000,debug=True)
