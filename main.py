@@ -1,9 +1,11 @@
 from flask import Flask, jsonify, request
 import json
+import time
 from firebase import firebase
-from threading import Thread
+import threading
 from models.Relay import Relay
 from models.Groups import Group
+from monitor import MonitorThread,check_for_new_and_deleted_groups
 
 fb = firebase.FirebaseApplication('https://pi8iftm-default-rtdb.firebaseio.com/', None)
 
@@ -24,9 +26,9 @@ def reset_id_groups():
 def get_relays():
     global response,fb
     data = fb.get("/","relays")
-   
-    
+
     try:
+    
         if(data!=None):
             data.remove(None)
             relays = []
@@ -34,7 +36,8 @@ def get_relays():
                 id = value['id']
                 id_group = value['id_group']
                 isManual = value['isManual']
-                relays.append(Relay(id=id,id_group=id_group, isManual=isManual))
+                state = value['state']
+                relays.append(Relay(id=id,id_group=id_group, isManual=isManual,state=state))
         relays_response = []
         
         for relay in relays:
@@ -61,7 +64,8 @@ def get_relays_group():
                 id = value['id']
                 id_group = value['id_group']
                 isManual = value['isManual']
-                relays.append(Relay(id=id,id_group=id_group, isManual=isManual))
+                state = value['state']
+                relays.append(Relay(id=id,id_group=id_group, isManual=isManual,state=state))
         relays_response = []
         
         for relay in relays:
@@ -87,7 +91,8 @@ def get_relays_control():
                 id = value['id']
                 id_group = value['id_group']
                 isManual = value['isManual']
-                relays.append(Relay(id=id,id_group=id_group, isManual=isManual))
+                state = value['state']
+                relays.append(Relay(id=id,id_group=id_group, isManual=isManual,state=state))
         relays_response = []
         
         for relay in relays:
@@ -108,7 +113,7 @@ def set_activate_relay():
     
     try:
         response = fb.put("/relays",request_data["id"],data=request_data)
-        response = fb.put("/relay",request_data["id"],request_data["isManual"])
+        response = fb.put("/relay",request_data["id"],request_data["state"])
         return {'response':["Done"]}
     
     except Exception as e:
@@ -118,7 +123,6 @@ def set_activate_relay():
 @app.route('/get_metrics', methods = ['GET'])
 def get_metrics():
     global response,fb
-    
     metrics = fb.get("/","pzem")
     metrics = json.loads(metrics)     
     return {'response':metrics}
@@ -173,8 +177,29 @@ def set_group():
        
         for i in relays:
             fb.put("/relays/"+str(i),"id_group",a["name"])
+            fb.put("/relays/"+str(i),"/isManual",False)
+        
+        data = fb.get("/","groups")
+        
+        if(data!=None):
+            groups = []
+            for key, value in data.items():
+                id = key
+                name = value['name']
+                controll_pot = value['controll_pot']
+                controll_time = value['controll_time']
+                pot_max = float(value['pot_max'])
+                pot_min = float(value['pot_min'])
+                time_off = value['time_off']
+                time_on = value['time_on']
+                relays = value['relays'].replace('"', '').split(',')
+                relays = [int(x) for x in relays]
+                groups.append(Group(id=id,name=name, controll_pot=controll_pot, controll_time=controll_time, pot_max=pot_max, pot_min=pot_min, time_off=time_off, time_on=time_on, relays=relays))
             
-        return {'response':"Done"}
+            if(len(groups)<=1):
+                start_monitoring()
+                
+        return {'response':"done"}
     
     except Exception as e:
         print(f"Erro ao adicionar dados ao Firebase: {e}")
@@ -194,15 +219,56 @@ def delete_groups():
 
             for relay_ in relays:
                 fb.put("/relays/"+str(relay_),"/id_group","-1")
+                fb.put("/relays/"+str(relay_),"/isManual",False)
+                fb.put("/relays/"+str(relay_),"/state",False)
+                
+                fb.put("/relay/",str(relay_),False)
+                
 
             fb.delete("/groups",request_data["id"])   
 
-            return{"response":["Done"]}
-        return{"response":[""]}
+            return{'response':"done"}
+        return{"response":""}
     except Exception as e:
         print(f"Erro ao coletar os dados do Firebase: {e}")
-        return {'response':["Fail"]}
-    
+        return {'response':"fail"}
+
+@app.route('/start_monitoring', methods=['GET'])
+def start_monitoring():
+    data = fb.get("/", "groups")
+    print(data)
+    if data:
+        groups = []
+        for key, value in data.items():
+            id = key
+            name = value['name']
+            controll_pot = value['controll_pot']
+            controll_time = value['controll_time']
+            pot_max = float(value['pot_max'])
+            pot_min = float(value['pot_min'])
+            time_off = value['time_off']
+            time_on = value['time_on']
+            relays = value['relays'].replace('"', '').split(',')
+            relays = [int(x) for x in relays]
+            groups.append(Group(id=id,name=name, controll_pot=controll_pot, controll_time=controll_time, pot_max=pot_max, pot_min=pot_min, time_off=time_off, time_on=time_on, relays=relays))
+        existing_groups = set(group.id for group in groups)
+        monitor_threads = {}
+
+        for group in groups:
+            # if group.controll_pot or group.controll_time:
+            monitor_thread = MonitorThread(group)
+            monitor_thread.daemon = True
+            monitor_thread.start()
+            monitor_threads[group.id] = monitor_thread
+
+        check_thread = threading.Thread(target=check_for_new_and_deleted_groups, args=(existing_groups, monitor_threads))
+        check_thread.daemon = True
+        check_thread.start()
+
+        return jsonify(response="Monitoring started"), 200
+
+    return jsonify(response="No groups to monitor"), 200
+  
 if(__name__ == "__main__"):
     app.run(host="localhost", port=5000,debug=True)
 
