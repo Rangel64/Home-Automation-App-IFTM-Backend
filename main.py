@@ -7,7 +7,7 @@ from models.Relay import Relay
 from models.Groups import Group
 from monitor import MonitorThread,check_for_new_and_deleted_groups
 
-fb = firebase.FirebaseApplication('https://pi8iftm-default-rtdb.firebaseio.com/', None)
+fb = firebase.FirebaseApplication('https://projetos8-default-rtdb.firebaseio.com/', None)
 
 app = Flask(__name__)
 
@@ -269,7 +269,19 @@ def start_monitoring():
 
     return jsonify(response="No groups to monitor"), 200
   
+def addRelaysObject():
+    for i in range(8):
+        relay = Relay()
+        print(relay)
+        a = fb.put("/relays",f"{i+1}",data=relay.toJson())
+
+def addRelaysArduino():
+    for i in range(8):
+        a = fb.put("/relay",f"{i+1}",data=False)
+    
+  
 if(__name__ == "__main__"):
     app.run(host="localhost", port=5000,debug=True)
-
+    # addRelaysObject()
+    # addRelaysArduino()
     

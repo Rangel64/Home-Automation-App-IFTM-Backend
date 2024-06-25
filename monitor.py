@@ -8,7 +8,7 @@ import threading
 from models.Relay import Relay
 from models.Groups import Group
 
-fb = firebase.FirebaseApplication('https://pi8iftm-default-rtdb.firebaseio.com/', None)
+fb = firebase.FirebaseApplication('https://projetos8-default-rtdb.firebaseio.com/', None)
 
 class MonitorThread(threading.Thread):
     def __init__(self, group: Group):
